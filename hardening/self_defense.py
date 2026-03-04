@@ -18,22 +18,38 @@ _PROMPT_INJECTION_PATTERNS = [
     r"you\s+are\s+now",
     r"pretend\s+(you\s+are|to\s+be)",
     r"system\s+prompt\s*:",
+    r"^\s*system\s*:\s*",              # SYSTEM: at line start
     r"disregard\s+(all\s+)?prior",
     r"new\s+instructions?\s*:",
     r"override\s+(all\s+)?previous",
+    r"override\s+safety",
     r"forget\s+(all\s+)?previous",
-    r"act\s+as\s+(if\s+you\s+are|a\s+different|an?\s+evil)",
+    r"act\s+as\s+(if\s+you\s+are|a\s+different|an?\s+evil|an?\s+unrestricted)",
     r"jailbreak",
-    r"do\s+anything\s+now",
+    r"do\s+anything\s+now",             # DAN
     r"developer\s+mode",
+    r"dan\s+mode",
+    r"unrestricted\s+(ai|mode|assistant)",
+    r"without\s+(any\s+)?restrictions",
+    r"bypass\s+(safety|filter|restriction)",
 ]
 
 _SQL_PATTERNS = [
-    r"('|\")(.*?)(--|;|\/\*)",
-    r"\b(DROP|DELETE|INSERT|UPDATE|EXEC|UNION|SELECT|ALTER|TRUNCATE)\b",
+    r"(\'|\")(..*?)(--|;|\/\*)",
+    # Context-aware — requires SQL syntax markers, not standalone English words
+    r"\b(DROP|ALTER|TRUNCATE)\b",
+    r"\bEXEC\b\s*\(",
+    r"\bUNION\b\s+(?:ALL\s+)?\bSELECT\b",
+    r"(?i)\bSELECT\b.{0,40}\bFROM\b\s+\w+(?=\s*(?:,|;|\.)|\s+(?:WHERE|JOIN|GROUP|ORDER|HAVING|LIMIT)\b)",
+    r"\b(?:DELETE|INSERT)\b\s+\b(?:FROM|INTO)\b",
+    r"\bUPDATE\b\s+\w+\s+\bSET\b",
     r";\s*(DROP|DELETE|INSERT|UPDATE|ALTER)",
     r"--\s*$",
     r"/\*.*?\*/",
+    r"'\s*(?:OR|AND)\s*'[^']*'\s*=\s*'",
+    r"'\s*(?:OR|AND)\s+\d+\s*=\s*\d",
+    r"\d+\s*'\s*(?:OR|AND)\s*'",
+    r"(?:OR|AND)\s+\d+\s*=\s*\d+\s*(?:--|$)",
 ]
 _CMD_PATTERNS = [
     r"[;&|`$(){}[\]<>]",

@@ -3,7 +3,7 @@ AURORA Interactive Menu — Full 7-Layer Platform Interface
 """
 from __future__ import annotations
 import time, sys
-from ui.console import c, banner, section, item, risk_bar, risk_verdict
+from ui.console import c, banner, section, item, multiline_item, risk_bar, risk_verdict
 from identity.provider import get_resolver
 
 
@@ -217,7 +217,9 @@ class AuroraMenu:
         item("Emotional State",     emotional)
         section("BEHAVIORAL ECONOMICS NUDGE (Kahneman/Thaler)")
         item("Nudge Type",          nudge["type"])
-        print(f"\n  {c('YELLOW', '  ⚠ ' + nudge['message'][:100])}")
+        import textwrap as _tw
+        for _ln in _tw.wrap('  ⚠ ' + nudge['message'], 76):
+            print(f"  {c('YELLOW', _ln)}")
         section("DECISION CO-PILOT SUGGESTIONS")
         for s in copilot["suggestions"]:
             print(f"  {c('CYAN', '  ›')} {s}")
@@ -226,7 +228,9 @@ class AuroraMenu:
         item("Predicted Outcome",   sim["likely_outcome"])
         item("Recommendation",      c("RED",sim["recommendation"]) if sim["recommendation"]=="BLOCK" else c("YELLOW",sim["recommendation"]))
         section("PREDICTIVE WARNING")
-        print(f"  {c('DIM', warning['warning'][:120])}")
+        import textwrap as _tw2
+        for _ln in _tw2.wrap(warning['warning'], 76):
+            print(f"  {c('DIM', _ln)}")
         input(f"\n  {c('DIM', '[Press Enter to continue]')}")
 
     # ── Layer 6: Supply Chain ─────────────────────────────────────────────────
@@ -281,16 +285,21 @@ class AuroraMenu:
         for v in novel["vectors"][:3]:
             color = "RED" if v["confidence"]>0.8 else "YELLOW"
             print(f"  {c(color, '  ▸')} {v['vector']} ({v['confidence']*100:.0f}% conf, {v['horizon_months']}mo)")
-            print(f"  {c('DIM', '    ' + v['description'][:80])}")
+            import textwrap as _tw3
+            for _ln in _tw3.wrap(v['description'], 72):
+                print(f"  {c('DIM', '    ' + _ln)}")
         section("AI-DRIVEN EXPLOIT PREDICTIONS")
         for name, model in list(tc._ai_threat_models.items())[:3]:
             color = "RED" if model["confidence"]>0.85 else "YELLOW"
-            print(f"  {c(color, '  ▸')} {name}: {model['description'][:70]}")
+            import textwrap as _tw4
+            _desc_lines = _tw4.wrap(f"{name}: {model['description']}", 74)
+            for _i4, _ln in enumerate(_desc_lines):
+                print(f"  {c(color, '  ▸') if _i4==0 else '     '} {c(color, _ln)}")
         section("SOCIAL ENGINEERING CAMPAIGN PREDICTION")
         for ct in social["campaign_types"]:
             print(f"  {c('YELLOW', '  ›')} {ct}")
         item("Confidence",         f"{social['confidence']*100:.0f}%")
-        item("Countermeasure",     social["recommended_countermeasure"][:70])
+        multiline_item("Countermeasure", social["recommended_countermeasure"])
         input(f"\n  {c('DIM', '[Press Enter to continue]')}")
 
     # ── Event Horizon ─────────────────────────────────────────────────────────
@@ -304,7 +313,7 @@ class AuroraMenu:
         item("Current Threat Level", f"{forecast['forecast'][0]['projected_threat_level']:.1f}/100")
         item("30-Day Trend",         report["trend"], "RED" if report["trend"]=="INCREASING" else "GREEN")
         item("Peak Threat",          f"Day {report['peak_threat']['day']}: {report['peak_threat']['projected_threat_level']:.1f} [{report['peak_threat']['level']}]")
-        item("Strategic Advice",     report["strategic_recommendation"][:70])
+        multiline_item("Strategic Advice", report["strategic_recommendation"], "YELLOW" if "COLD START" in report["strategic_recommendation"] else "WHITE")
         print(f"\n  {c('BRIGHT', 'Day  Threat Level     Forecast Bar')}")
         for f in forecast["forecast"][:14]:
             bar = "█" * int(f["projected_threat_level"]/5)
@@ -336,7 +345,7 @@ class AuroraMenu:
             print(f"  {c('GREEN' if status=='COMPLIANT' else 'YELLOW', '  ' + ('✓' if status=='COMPLIANT' else '⚠'))} {fw}: {status}")
         section("XAI — EXPLAINABLE AI FEATURE ATTRIBUTION")
         item("Top Factor",         explanation["dominant_factor"].replace("_"," "))
-        item("Explanation",        explanation["explanation"][:90])
+        multiline_item("Explanation", explanation["explanation"])
         for feat, pct in attribution["attributions_pct"].items():
             bar = "█" * int(pct/5)
             print(f"  {c('DIM', feat.ljust(25))} {c('CYAN', bar)} {pct:.1f}%")
@@ -391,7 +400,7 @@ class AuroraMenu:
         item("Key Storage",         "Ed25519 keys in ~/.aurora/keys (chmod 600)")
         section("SANITIZATION DEMO")
         item("Input",               "' OR 1=1; DROP TABLE users --")
-        item("Sanitized",           sanitized[:60])
+        item("Sanitized",           (sanitized[:57] + "…") if len(sanitized) > 57 else sanitized)
         input(f"\n  {c('DIM', '[Press Enter to continue]')}")
 
     # ── Doctor ────────────────────────────────────────────────────────────────
@@ -423,7 +432,7 @@ class AuroraMenu:
             export_provision_package, authenticate,
             send_department_message, get_inbox, read_message,
             list_dept_messages_admin, get_departments, get_department_members,
-            force_logout_user, switch_account_prompt,
+            force_logout_user, switch_account_prompt, change_user_role,
             _RESET_TOKEN_TTL,
         )
         import getpass
@@ -434,6 +443,11 @@ class AuroraMenu:
 
         while True:
             section("IDENTITY & USER MANAGEMENT")
+            # ── Integration guide (shown once per session at top) ──────────────
+            print(c("DIM", "  Integration backends: SSO/OIDC  ·  LDAP/AD  ·  SAML 2.0  ·  org_config  ·  CSV/JSON roster"))
+            print(c("DIM", "  Configure: ~/.aurora/identity.json  (SSO/LDAP)  |  ~/.aurora/org_config.json  (roster)"))
+            print(c("DIM", "  Env overrides: AURORA_SSO_CLIENT_ID  AURORA_LDAP_BIND_PASSWORD  AURORA_USER_ID  AURORA_ORG_ID"))
+            print()
             users = list_users()
             item("Total AURORA Users", str(len(users)))
             item("Your Role",        (session or {}).get("role", "unknown").upper())
@@ -455,6 +469,7 @@ class AuroraMenu:
                 ("9",  "My inbox",                                           True),
                 ("10", "Change my own password",                             True),
                 ("11", "Switch account",                                     True),
+                ("12", "Change a user's role  [promote / demote]",           is_admin),
                 ("0",  "Back",                                               True),
             ]
             for num, desc, allowed in options:
@@ -463,7 +478,7 @@ class AuroraMenu:
                 print(f"  |  {c('CYAN', num.rjust(2))}  {c(col, desc + tag)}")
             print(c("BRIGHT", "  +-------------------------------------------------------------------+"))
             try:
-                ch = input(f"\n  {c('CYAN','>')} Select [{c('DIM','0-11')}]: ").strip()
+                ch = input(f"\n  {c('CYAN','>')} Select [{c('DIM','0-12')}]: ").strip()
             except (KeyboardInterrupt, EOFError):
                 return
 
@@ -840,6 +855,74 @@ class AuroraMenu:
                     session  = _gs2()
                     is_admin = session and session.get("role") == "admin"
                     return   # Back to main menu so header reflects new user
+
+            # ── 12 Change user role ────────────────────────────────────────────
+            elif ch == "12":
+                if not is_admin:
+                    print(c("RED", "  Admin access required."))
+                    input(f"  {c('DIM','[Enter]')}"); continue
+                section("CHANGE USER ROLE  [Promote / Demote]")
+                print(c("DIM",    "  Available roles: " + ", ".join(ROLES)))
+                print(c("DIM",    "  An admin cannot change their own role."))
+                print(c("DIM",    "  The last remaining admin cannot be demoted."))
+                print()
+                # Show current users and roles for reference
+                all_users = list_users()
+                print(c("BRIGHT", "  Current users:"))
+                print(f"  {'Username':<20}  {'Name':<22}  {'Role':<12}")
+                print(f"  {'-'*56}")
+                for u in all_users:
+                    rc = ("CYAN"   if u["role"] == "admin" else
+                          "YELLOW" if u["role"] == "operator" else "DIM")
+                    you = c("DIM", "  ← you") if u["username"] == (session or {}).get("username") else ""
+                    print(f"  {c('WHITE', u['username'].ljust(20))}  "
+                          f"{u.get('name','').ljust(22)}  "
+                          f"{c(rc, u['role'].ljust(12))}{you}")
+                print()
+                try:
+                    uname = input(f"  {c('CYAN','Username to change')}: ").strip().lower()
+                    if not uname:
+                        input(f"  {c('DIM','[Enter]')}"); continue
+                    print(f"  Roles: {', '.join(ROLES)}")
+                    new_role = input(f"  {c('CYAN','New role')}: ").strip().lower()
+                    if not new_role:
+                        print(c("DIM", "  Cancelled."))
+                        input(f"  {c('DIM','[Enter]')}"); continue
+                    # Find current role for display
+                    target_rec = next(
+                        (u for u in all_users if u["username"] == uname), None
+                    )
+                    if not target_rec:
+                        print(c("RED", f"  User '{uname}' not found."))
+                        input(f"  {c('DIM','[Enter]')}"); continue
+                    old_role = target_rec["role"]
+                    if old_role == new_role:
+                        print(c("DIM", f"  '{uname}' is already '{new_role}'. No change."))
+                        input(f"  {c('DIM','[Enter]')}"); continue
+                    # Confirm before applying
+                    arrow = c("YELLOW", f"  {old_role}  →  {new_role}")
+                    confirm = input(
+                        f"  Confirm: {c('WHITE', uname)} {arrow}  [Y/n]: "
+                    ).strip().lower()
+                    if confirm == "n":
+                        print(c("DIM", "  Cancelled."))
+                        input(f"  {c('DIM','[Enter]')}"); continue
+                    requester = (session or {}).get("username", "")
+                    change_user_role(uname, new_role, requester)
+                    print()
+                    action = "promoted to" if new_role == "admin" else "role changed to"
+                    color  = "GREEN" if new_role == "admin" else "CYAN"
+                    print(c(color, f"  ✓ '{uname}' {action} [{new_role.upper()}]."))
+                    if new_role == "admin":
+                        print(c("DIM", "  They will have full admin privileges on next action."))
+                    elif old_role == "admin":
+                        print(c("DIM", f"  Admin privileges removed. New role: {new_role}."))
+                    print(c("DIM",  "  Change recorded in the immutable audit log."))
+                except (ValueError, PermissionError) as e:
+                    print(c("RED", f"  {e}"))
+                input(f"\n  {c('DIM', '[Press Enter to continue]')}")
+
+    # ── Exit ──────────────────────────────────────────────────────────────────
 
     def _exit(self):
         print(c("CYAN", "\n  AURORA -- Securing the future. Goodbye.\n"))

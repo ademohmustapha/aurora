@@ -3,7 +3,7 @@ from __future__ import annotations
 import time, math, json, statistics
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional, Tuple
-from core.config import Config
+from core.config import AuroraConfig as Config
 from core.logger import AuditLogger
 
 @dataclass

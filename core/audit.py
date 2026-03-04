@@ -8,7 +8,7 @@ from __future__ import annotations
 import json, time, hashlib, hmac, os
 from dataclasses import dataclass, asdict
 from typing import Optional
-from core.crypto import AuroraCrypto
+from core.crypto import CryptoPrimitive
 
 @dataclass
 class AuditBlock:
@@ -40,7 +40,7 @@ class AuroraAuditChain:
         self._path = chain_path
         self._key = hmac_key
         self._priv_pem = priv_pem
-        self._crypto = AuroraCrypto()
+        self._crypto = CryptoPrimitive()
         self._blocks: list[AuditBlock] = []
         self._load()
 
@@ -77,10 +77,10 @@ class AuroraAuditChain:
             "prev": prev_h
         }, sort_keys=True).encode()
         block_hash = hashlib.sha3_256(payload).hexdigest()
-        hmac_tag = self._crypto.hmac_sign(self._key, payload)
+        hmac_tag = self._crypto.hmac_sign(payload, self._key)
         sig = None
         if self._priv_pem and severity in ("HIGH", "CRITICAL"):
-            sig = self._crypto.sign(self._priv_pem, payload)
+            sig = self._crypto.sign(payload, self._priv_pem)
         block = AuditBlock(
             index=idx, timestamp_ns=ts, event_type=event_type,
             actor=actor, resource=resource, action=action,
@@ -109,7 +109,7 @@ class AuroraAuditChain:
             expected_hash = hashlib.sha3_256(payload).hexdigest()
             if blk.block_hash != expected_hash:
                 issues.append(f"Block {i}: block_hash tampered (DATA CORRUPTION)")
-            if not self._crypto.hmac_verify(self._key, payload, blk.hmac_tag):
+            if not self._crypto.hmac_verify(payload, blk.hmac_tag, self._key):
                 issues.append(f"Block {i}: HMAC invalid (POSSIBLE FORGERY)")
             prev_h = blk.block_hash
         return (len(issues) == 0), issues

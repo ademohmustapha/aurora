@@ -56,3 +56,16 @@ def section(title: str) -> None:
 
 def item(label: str, value: str, color: str = "WHITE") -> None:
     print(f"  {c('DIM', label.ljust(28))} {c(color, value)}")
+
+def multiline_item(label: str, value: str, color: str = "WHITE", width: int = 72) -> None:
+    """Like item() but wraps long values onto continuation lines."""
+    import textwrap
+    label_col = c("DIM", label.ljust(28))
+    lines = textwrap.wrap(str(value), width=width)
+    if not lines:
+        print(f"  {label_col}")
+        return
+    print(f"  {label_col} {c(color, lines[0])}")
+    indent = " " * 30  # 2 spaces + 28-char label column
+    for line in lines[1:]:
+        print(f"  {indent}{c(color, line)}")

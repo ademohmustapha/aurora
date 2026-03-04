@@ -3,7 +3,8 @@ from __future__ import annotations
 import json, time, hashlib, hmac, os
 from pathlib import Path
 from typing import Optional
-from core.bootstrap import AURORA_HOME, Bootstrap
+from core.paths import AURORA_HOME
+from core.bootstrap import Bootstrap
 
 _LOG_FILE = AURORA_HOME / "aurora_audit.jsonl"
 

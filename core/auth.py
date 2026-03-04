@@ -657,6 +657,73 @@ def update_user_departments(username: str, departments: List[str]) -> None:
     logger.info(f"Departments updated: {username} -> {depts}")
 
 
+def change_user_role(target_username: str, new_role: str,
+                     requesting_username: str) -> None:
+    """
+    Promote or demote a user's role.
+
+    Rules:
+      - Only admins can call this.
+      - An admin cannot change their own role (prevents accidental self-lockout;
+        another admin must make the change).
+      - The last remaining admin account cannot be demoted — AURORA must always
+        have at least one admin.
+      - new_role must be one of: admin, operator, analyst, readonly.
+    """
+    requesting_username = requesting_username.strip().lower()
+    target_username     = target_username.strip().lower()
+    new_role            = _validate_role(new_role)
+
+    with _WRITE_LOCK:
+        users = _load_users()
+
+        req = users.get(requesting_username)
+        if not req or req.get("role") != "admin":
+            raise PermissionError("Only admins can change user roles.")
+
+        if target_username == requesting_username:
+            raise ValueError(
+                "You cannot change your own role. "
+                "Ask another admin to make this change."
+            )
+
+        if target_username not in users:
+            raise ValueError(f"User '{target_username}' not found.")
+
+        current_role = users[target_username].get("role", "operator")
+
+        # Guard: prevent demoting the last admin
+        if current_role == "admin" and new_role != "admin":
+            admin_count = sum(
+                1 for u in users.values() if u.get("role") == "admin"
+            )
+            if admin_count <= 1:
+                raise ValueError(
+                    f"Cannot demote '{target_username}' — they are the only "
+                    "remaining admin. Promote another user to admin first."
+                )
+
+        users[target_username]["role"] = new_role
+        _save_users(users)
+
+    # If the affected user is currently logged in, refresh their session role
+    global _session
+    if _session and _session.get("username") == target_username:
+        _session["role"] = new_role
+
+    _alog(
+        "role_changed",
+        target=target_username,
+        old_role=current_role,
+        new_role=new_role,
+        changed_by=requesting_username,
+    )
+    logger.info(
+        f"Role change: {target_username} {current_role} -> {new_role} "
+        f"(by {requesting_username})"
+    )
+
+
 def list_users() -> List[Dict]:
     safe = ["username", "name", "employee_id", "department", "departments",
             "role", "totp_enabled", "created_at", "last_login", "provisioned"]
